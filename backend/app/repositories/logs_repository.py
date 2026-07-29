@@ -22,10 +22,11 @@ class LogsRepository:
             "ai_response": ai_response,
         }
 
+        msg = "Запрос завершён с ошибкой" if error else "Запрос завершён"
         if status >= 400:
-            logger.bind(**log_data).warning("Запрос завершён с ошибкой" if error else "Запрос завершён")
+            logger.bind(**log_data).warning(msg)
         else:
-            logger.bind(**log_data).info("Запрос завершён")
+            logger.bind(**log_data).info(msg)
 
         if ai_response:
             logger.bind(**log_data).info(f"Ответ AI: {ai_response}")

@@ -30,7 +30,8 @@ class RateLimiter:
         if total_requests >= self._max_requests:
             logger.warning("Превышен лимит запросов для IP: {}", ip_address)
             raise RateLimitExceededError(
-                f"Превышен лимит запросов. Максимум {self._max_requests} запросов за {self._window_seconds} секунд."
+                f"Превышен лимит запросов. "
+                f"Максимум {self._max_requests} запросов за {self._window_seconds} секунд."
             )
 
         records.append((now, 1))
