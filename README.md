@@ -403,8 +403,8 @@ alembic history                              # История миграций
 |-----------|----------|-------------|-------------|
 | `OPENAI_API_KEY` | API-ключ OpenAI | — | Да (без AI — fallback) |
 | `OPENAI_MODEL` | Модель OpenAI | `gpt-4o-mini` | — |
-| `UNISENDER_API_KEY` | API-ключ Unisender (приоритет перед SMTP) | — | — |
-| `UNISENDER_SENDER_EMAIL` | Подтверждённый email отправителя в Unisender | — | — |
+| `MAILGUN_API_KEY` | API-ключ Mailgun (приоритет перед SMTP) | — | — |
+| `MAILGUN_DOMAIN` | Sandbox-домен Mailgun | — | — |
 | `SMTP_HOST` | SMTP-сервер (fallback) | `smtp.gmail.com` | — |
 | `SMTP_PORT` | Порт SMTP | `587` | — |
 | `SMTP_USER` | Логин SMTP | — | — |

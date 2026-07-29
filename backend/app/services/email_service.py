@@ -9,13 +9,13 @@ from loguru import logger
 
 from app.core.config import settings
 
-UNISENDER_API_URL = "https://api.unisender.com/ru/api/sendEmail?format=json"
+MAILGUN_BASE_URL = "https://api.mailgun.net/v3"
 
 
 class EmailService:
     def __init__(self) -> None:
-        self._unisender_available = bool(settings.unisender_api_key) and bool(
-            settings.unisender_sender_email
+        self._mailgun_available = bool(settings.mailgun_api_key) and bool(
+            settings.mailgun_domain
         )
         self._smtp_available = all([
             settings.smtp_host,
@@ -23,29 +23,29 @@ class EmailService:
             settings.smtp_password,
         ])
 
-    def _send_via_unisender(self, to_email: str, subject: str, html_body: str) -> bool:
-        sender = settings.unisender_sender_email
+    def _send_via_mailgun(self, to_email: str, subject: str, html_body: str) -> bool:
+        domain = settings.mailgun_domain
         try:
             with httpx.Client(timeout=15) as client:
                 response = client.post(
-                    UNISENDER_API_URL,
+                    f"{MAILGUN_BASE_URL}/{domain}/messages",
+                    auth=("api", settings.mailgun_api_key),
                     data={
-                        "api_key": settings.unisender_api_key,
-                        "email": to_email,
-                        "sender_name": "AI Contact API",
-                        "sender_email": sender,
+                        "from": f"AI Contact API <noreply@{domain}>",
+                        "to": to_email,
                         "subject": subject,
-                        "body": html_body,
+                        "html": html_body,
                     },
                 )
-                result = response.json()
-                if "error" in result:
-                    logger.error(f"Ошибка Unisender для {to_email}: {result['error']}")
+                if response.status_code != 200:
+                    logger.error(
+                        f"Ошибка Mailgun для {to_email}: {response.json().get('message', response.text)}"
+                    )
                     return False
-                logger.info(f"Email отправлен на {to_email} через Unisender")
+                logger.info(f"Email отправлен на {to_email} через Mailgun")
                 return True
         except Exception as e:
-            logger.error(f"Ошибка Unisender для {to_email}: {e}")
+            logger.error(f"Ошибка Mailgun для {to_email}: {e}")
             return False
 
     def _send_via_smtp(self, to_email: str, subject: str, html_body: str) -> bool:
@@ -75,12 +75,12 @@ class EmailService:
             return False
 
     def _send_email(self, to_email: str, subject: str, html_body: str) -> bool:
-        if self._unisender_available:
-            return self._send_via_unisender(to_email, subject, html_body)
+        if self._mailgun_available:
+            return self._send_via_mailgun(to_email, subject, html_body)
         if self._smtp_available:
             return self._send_via_smtp(to_email, subject, html_body)
 
-        logger.warning("Ни Unisender, ни SMTP не настроены, пропуск отправки email")
+        logger.warning("Ни Mailgun, ни SMTP не настроены, пропуск отправки email")
         return False
 
     def send_owner_notification(
