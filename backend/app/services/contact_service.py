@@ -67,5 +67,6 @@ class ContactService:
                 email=email,
                 sentiment=sentiment,
                 reason=reason,
+                fallback_used=(sentiment == "unknown"),
             ),
         ).model_dump()

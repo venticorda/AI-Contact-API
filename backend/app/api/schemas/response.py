@@ -16,6 +16,10 @@ class SentimentData(BaseModel):
         description="Объяснение анализа тональности",
         examples=["Комментарий выражает удовлетворение и благодарность"],
     )
+    fallback_used: bool = Field(
+        ...,
+        description="Использован ли fallback (AI был недоступен)",
+    )
 
 
 class ContactResponse(BaseModel):

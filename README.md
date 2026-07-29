@@ -71,10 +71,8 @@ backend/
 │   │   ├── index.html
 │   │   ├── style.css
 │   │   └── script.js
-│   ├── utils/                 # Вспомогательные функции
-│   │   └── validators.py      #   Валидация телефона и email
 │   └── main.py                # Точка входа, lifespan, middleware
-├── tests/                     # pytest (14 тестов)
+├── tests/                     # pytest (15 тестов)
 ├── alembic/                   # Миграции БД
 ├── storage/                   # Файлы: логи, метрики, rate limit
 ├── .env                       # Переменные окружения
@@ -281,7 +279,7 @@ Gmail API — единственный провайдер. Никаких fallba
 | **Frontend** | Лендинг-презентация, стек технологий, форма отправки, статусы API/AI/БД, scroll-анимация |
 | **Безопасность** | Pydantic-валидация, CORS, rate limiting, глобальный error handler |
 | **DevOps** | Docker Compose (3 контейнера), nginx reverse proxy, CI (GitHub Actions), pre-commit хуки |
-| **Тесты** | 14 тестов: health, contact (success/validation/rate_limit), metrics, AI fallback, validators |
+| **Тесты** | 15 тестов: health=1, contact=3, metrics=2, AI fallback=2, validators=7 |
 
 ---
 
@@ -365,6 +363,7 @@ Swagger-документация: `http://localhost/docs`
 ```json
 {
   "success": true,
+  "message": "Контактная форма успешно обработана",
   "data": {
     "name": "Иван Петров",
     "email": "ivan@example.com",
@@ -379,11 +378,12 @@ Swagger-документация: `http://localhost/docs`
 ```json
 {
   "success": true,
+  "message": "Контактная форма успешно обработана",
   "data": {
     "name": "Иван Петров",
     "email": "ivan@example.com",
     "sentiment": "unknown",
-    "reason": "AI-анализ временно недоступен",
+    "reason": "AI недоступен",
     "fallback_used": true
   }
 }
@@ -417,15 +417,14 @@ Swagger-документация: `http://localhost/docs`
 
 | Поле | Тип | Описание |
 |------|-----|----------|
-| `id` | UUID (PK) | Уникальный идентификатор |
+| `id` | VARCHAR(36) | UUID |
 | `name` | VARCHAR(100) | Имя отправителя |
-| `phone` | VARCHAR(20) | Телефон |
+| `phone` | VARCHAR(30) | Телефон |
 | `email` | VARCHAR(255) | Email |
 | `comment` | TEXT | Текст обращения |
 | `sentiment` | VARCHAR(20) | Тональность (positive/neutral/negative/unknown) |
-| `reason` | TEXT | Обоснование от AI |
-| `fallback_used` | BOOLEAN | Использован ли AI fallback |
-| `created_at` | TIMESTAMP | Дата создания |
+| `reason` | TEXT | Обоснование от AI (nullable) |
+| `created_at` | TIMESTAMPTZ | Дата создания |
 
 Подключение: SQLAlchemy 2.0 async (асинхронные сессии). Миграции — Alembic.
 
@@ -435,9 +434,9 @@ Swagger-документация: `http://localhost/docs`
 
 Реализовано через **Loguru** — три файловых sink + stdout:
 
-- `app.json` — все запросы (ротация 1 файл/день, хранение 30 дней, gzip)
-- `errors.json` — только ошибки
-- `ai.json` — только AI-запросы (промпты, ответы, время выполнения)
+- `app_YYYY-MM-DD.log` — все запросы (ротация 1 файл/день, хранение 30 дней, gzip)
+- `errors_YYYY-MM-DD.log` — только ошибки
+- `ai_YYYY-MM-DD.log` — только AI-запросы (промпты, ответы, время выполнения)
 
 Формат: JSON-строки, каждая с timestamp, уровнем, именем модуля и сообщением.
 Логирование каждого HTTP-запроса — через middleware (`middlewares/logging.py`),
@@ -511,11 +510,11 @@ alembic history                              # История миграций
 
 ### GitHub Actions
 
-При каждом пуше в `master`:
+При каждом пуше или pull request в `master`/`main`:
 
 ```yaml
-- Ruff check          # линтинг
-- pytest -v           # 14 тестов, SQLite in-memory
+- Ruff check          # линтинг (Python 3.14)
+- pytest -v           # 15 тестов, SQLite in-memory
 ```
 
 Файл: `.github/workflows/ci.yml`
