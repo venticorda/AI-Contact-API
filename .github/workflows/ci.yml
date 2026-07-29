@@ -22,7 +22,7 @@ jobs:
           python-version: "3.14"
 
       - name: Установить зависимости
-        run: pip install ruff pydantic-settings loguru httpx aiosqlite
+        run: pip install ruff pydantic-settings loguru httpx aiosqlite google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
       - name: Ruff линтер
         run: ruff check .
@@ -40,7 +40,8 @@ jobs:
         run: |
           pip install fastapi uvicorn pydantic pydantic-settings loguru \
             sqlalchemy httpx openai psycopg[binary,pool] aiosqlite \
-            pytest pytest-asyncio
+            pytest pytest-asyncio \
+            google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
       - name: Запустить тесты
         run: python -m pytest -v --tb=short -q

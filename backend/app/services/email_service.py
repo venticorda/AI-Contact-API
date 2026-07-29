@@ -156,8 +156,9 @@ class EmailService:
                     },
                 )
                 if response.status_code != 200:
+                    err = response.json().get("message", response.text)
                     logger.error(
-                        f"Ошибка Mailgun для {to_email}: {response.json().get('message', response.text)}"
+                        f"Ошибка Mailgun для {to_email}: {err}"
                     )
                     return False
                 logger.info(f"Email отправлен на {to_email} через Mailgun")
