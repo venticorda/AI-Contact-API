@@ -4,36 +4,48 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-import resend
+import httpx
 from loguru import logger
 
 from app.core.config import settings
 
+UNISENDER_API_URL = "https://api.unisender.com/ru/api/sendEmail?format=json"
+
 
 class EmailService:
     def __init__(self) -> None:
-        self._resend_available = bool(settings.resend_api_key)
-        if self._resend_available:
-            resend.api_key = settings.resend_api_key
-
+        self._unisender_available = bool(settings.unisender_api_key) and bool(
+            settings.unisender_sender_email
+        )
         self._smtp_available = all([
             settings.smtp_host,
             settings.smtp_user,
             settings.smtp_password,
         ])
 
-    def _send_via_resend(self, to_email: str, subject: str, html_body: str) -> bool:
+    def _send_via_unisender(self, to_email: str, subject: str, html_body: str) -> bool:
+        sender = settings.unisender_sender_email
         try:
-            resend.Emails.send({
-                "from": "onboarding@resend.dev",
-                "to": to_email,
-                "subject": subject,
-                "html": html_body,
-            })
-            logger.info(f"Email отправлен на {to_email} через Resend")
-            return True
+            with httpx.Client(timeout=15) as client:
+                response = client.post(
+                    UNISENDER_API_URL,
+                    data={
+                        "api_key": settings.unisender_api_key,
+                        "email": to_email,
+                        "sender_name": "AI Contact API",
+                        "sender_email": sender,
+                        "subject": subject,
+                        "body": html_body,
+                    },
+                )
+                result = response.json()
+                if "error" in result:
+                    logger.error(f"Ошибка Unisender для {to_email}: {result['error']}")
+                    return False
+                logger.info(f"Email отправлен на {to_email} через Unisender")
+                return True
         except Exception as e:
-            logger.error(f"Ошибка Resend для {to_email}: {e}")
+            logger.error(f"Ошибка Unisender для {to_email}: {e}")
             return False
 
     def _send_via_smtp(self, to_email: str, subject: str, html_body: str) -> bool:
@@ -63,12 +75,12 @@ class EmailService:
             return False
 
     def _send_email(self, to_email: str, subject: str, html_body: str) -> bool:
-        if self._resend_available:
-            return self._send_via_resend(to_email, subject, html_body)
+        if self._unisender_available:
+            return self._send_via_unisender(to_email, subject, html_body)
         if self._smtp_available:
             return self._send_via_smtp(to_email, subject, html_body)
 
-        logger.warning("Ни Resend, ни SMTP не настроены, пропуск отправки email")
+        logger.warning("Ни Unisender, ни SMTP не настроены, пропуск отправки email")
         return False
 
     def send_owner_notification(
