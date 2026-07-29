@@ -22,7 +22,7 @@ jobs:
           python-version: "3.14"
 
       - name: Установить зависимости
-        run: pip install ruff pydantic-settings loguru httpx aiosqlite
+        run: pip install ruff pydantic-settings loguru httpx aiosqlite resend
 
       - name: Ruff линтер
         run: ruff check .
@@ -39,7 +39,7 @@ jobs:
       - name: Установить зависимости
         run: |
           pip install fastapi uvicorn pydantic pydantic-settings loguru \
-            sqlalchemy httpx openai psycopg[binary,pool] aiosqlite \
+            sqlalchemy httpx openai psycopg[binary,pool] aiosqlite resend \
             pytest pytest-asyncio
 
       - name: Запустить тесты

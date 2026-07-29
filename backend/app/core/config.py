@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
 
+    resend_api_key: str = ""
+
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""

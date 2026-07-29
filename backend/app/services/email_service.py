@@ -4,6 +4,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import resend
 from loguru import logger
 
 from app.core.config import settings
@@ -11,15 +12,32 @@ from app.core.config import settings
 
 class EmailService:
     def __init__(self) -> None:
-        self._enabled = all([
+        self._resend_available = bool(settings.resend_api_key)
+        if self._resend_available:
+            resend.api_key = settings.resend_api_key
+
+        self._smtp_available = all([
             settings.smtp_host,
             settings.smtp_user,
             settings.smtp_password,
         ])
 
-    def _send_email(self, to_email: str, subject: str, html_body: str) -> bool:
-        if not self._enabled:
-            logger.warning("SMTP не настроен, пропуск отправки email")
+    def _send_via_resend(self, to_email: str, subject: str, html_body: str) -> bool:
+        try:
+            resend.Emails.send({
+                "from": "onboarding@resend.dev",
+                "to": to_email,
+                "subject": subject,
+                "html": html_body,
+            })
+            logger.info(f"Email отправлен на {to_email} через Resend")
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка Resend для {to_email}: {e}")
+            return False
+
+    def _send_via_smtp(self, to_email: str, subject: str, html_body: str) -> bool:
+        if not self._smtp_available:
             return False
 
         try:
@@ -34,7 +52,7 @@ class EmailService:
                 server.login(settings.smtp_user, settings.smtp_password)
                 server.send_message(msg)
 
-            logger.info(f"Email отправлен на {to_email}")
+            logger.info(f"Email отправлен на {to_email} через SMTP")
             return True
 
         except smtplib.SMTPException as e:
@@ -43,6 +61,15 @@ class EmailService:
         except OSError as e:
             logger.error(f"Ошибка SMTP-подключения для {to_email}: {e}")
             return False
+
+    def _send_email(self, to_email: str, subject: str, html_body: str) -> bool:
+        if self._resend_available:
+            return self._send_via_resend(to_email, subject, html_body)
+        if self._smtp_available:
+            return self._send_via_smtp(to_email, subject, html_body)
+
+        logger.warning("Ни Resend, ни SMTP не настроены, пропуск отправки email")
+        return False
 
     def send_owner_notification(
         self,

@@ -403,10 +403,11 @@ alembic history                              # История миграций
 |-----------|----------|-------------|-------------|
 | `OPENAI_API_KEY` | API-ключ OpenAI | — | Да (без AI — fallback) |
 | `OPENAI_MODEL` | Модель OpenAI | `gpt-4o-mini` | — |
-| `SMTP_HOST` | SMTP-сервер | `smtp.gmail.com` | Да (для email) |
+| `RESEND_API_KEY` | API-ключ Resend (приоритет перед SMTP) | — | — |
+| `SMTP_HOST` | SMTP-сервер (fallback) | `smtp.gmail.com` | — |
 | `SMTP_PORT` | Порт SMTP | `587` | — |
-| `SMTP_USER` | Логин SMTP | — | Да |
-| `SMTP_PASSWORD` | Пароль/App Password | — | Да |
+| `SMTP_USER` | Логин SMTP | — | — |
+| `SMTP_PASSWORD` | Пароль/App Password | — | — |
 | `SMTP_OWNER_EMAIL` | Email владельца для уведомлений | — | Да |
 | `SMTP_FROM_EMAIL` | Отправитель писем | = SMTP_USER | — |
 | `DATABASE_URL` | Подключение к БД | `postgresql+psycopg://postgres:postgres@localhost:5432/contacts` | — |
