@@ -1,0 +1,105 @@
+{
+  "info": {
+    "name": "AI Contact API",
+    "description": "Коллекция API для AI Contact API — анализ тональности, контактная форма, health и metrics endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Проверка состояния",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/health",
+          "host": ["{{base_url}}"],
+          "path": ["api", "health"]
+        },
+        "description": "Проверить состояние API"
+      },
+      "response": [
+        {
+          "name": "Успех",
+          "status": "OK",
+          "code": 200,
+          "header": [],
+          "body": "{\n  \"status\": \"здоров\",\n  \"version\": \"1.0.0\",\n  \"uptime\": 1234.56,\n  \"ai_status\": \"available\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Получить метрики",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/metrics",
+          "host": ["{{base_url}}"],
+          "path": ["api", "metrics"]
+        },
+        "description": "Получить статистику использования сервиса"
+      },
+      "response": [
+        {
+          "name": "Успех",
+          "status": "OK",
+          "code": 200,
+          "header": [],
+          "body": "{\n  \"total_requests\": 150,\n  \"successful_requests\": 145,\n  \"failed_requests\": 5,\n  \"ai_fallbacks\": 3\n}"
+        }
+      ]
+    },
+    {
+      "name": "Отправить контактную форму",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Иван Петров\",\n  \"phone\": \"+79261234567\",\n  \"email\": \"ivan@example.com\",\n  \"comment\": \"Отличный сервис! Команда была очень отзывчивой. Спасибо!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/contact",
+          "host": ["{{base_url}}"],
+          "path": ["api", "contact"]
+        },
+        "description": "Отправить контактную форму с анализом тональности"
+      },
+      "response": [
+        {
+          "name": "Успех",
+          "status": "OK",
+          "code": 200,
+          "header": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Контактная форма успешно обработана\",\n  \"data\": {\n    \"name\": \"Иван Петров\",\n    \"email\": \"ivan@example.com\",\n    \"sentiment\": \"positive\",\n    \"reason\": \"Комментарий выражает удовлетворение и благодарность\"\n  }\n}"
+        },
+        {
+          "name": "Ошибка валидации",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [],
+          "body": "{\n  \"detail\": [\n    {\n      \"type\": \"string_too_short\",\n      \"loc\": [\"body\", \"name\"],\n      \"msg\": \"String should have at least 2 characters\",\n      \"input\": \"J\"\n    }\n  ]\n}"
+        },
+        {
+          "name": "Превышен лимит",
+          "status": "Too Many Requests",
+          "code": 429,
+          "header": [],
+          "body": "{\n  \"detail\": \"Превышен лимит запросов. Попробуйте позже.\"\n}"
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ]
+}
