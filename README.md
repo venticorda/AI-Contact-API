@@ -23,7 +23,7 @@
 | Фреймворк | **FastAPI** | Асинхронный, Pydantic v2, OpenAPI/docs автоматом |
 | БД | **PostgreSQL 16** + SQLAlchemy 2.0 async | Надёжность, ACID, async sessions |
 | AI | **OpenAI GPT-4o-mini** | Быстрая дешёвая модель, JSON-mode для структурированного вывода |
-| Почта | **SMTP (Gmail)** с STARTTLS | Надёжная доставка, fallback если SMTP не настроен |
+| Почта | **Gmail API** (HTTPS OAuth2, приоритет) → HaskiMail → Mailgun → SMTP | Каскадный fallback: Gmail API 100/день бесплатно |
 | Контейнеризация | **Docker Compose** (app + db + nginx) | Изолированная среда, production-ready |
 | Тесты | **pytest** + pytest-asyncio + httpx | Асинхронные тесты, SQLite in-memory для CI |
 | Линтер | **Ruff** | Быстрый, покрывает flake8/isort/pyupgrade |
@@ -403,7 +403,14 @@ alembic history                              # История миграций
 |-----------|----------|-------------|-------------|
 | `OPENAI_API_KEY` | API-ключ OpenAI | — | Да (без AI — fallback) |
 | `OPENAI_MODEL` | Модель OpenAI | `gpt-4o-mini` | — |
-| `MAILGUN_API_KEY` | API-ключ Mailgun (приоритет перед SMTP) | — | — |
+| `GMAIL_TOKEN_JSON` | Gmail OAuth token (base64) для Gmail API (приоритетный способ) | — | — |
+| `GMAIL_FROM_EMAIL` | Gmail-адрес отправителя | — | — |
+| `HASKIMAIL_SERVER_TOKEN` | Токен сервера HaskiMail (fallback) | — | — |
+| `HASKIMAIL_FROM_EMAIL` | Подтверждённый отправитель HaskiMail | — | — |
+| `HASKIMAIL_CHANNEL_ID` | ID канала HaskiMail | — | — |
+| `ELASTICEMAIL_API_KEY` | API-ключ ElasticEmail (fallback) | — | — |
+| `ELASTICEMAIL_FROM_EMAIL` | Подтверждённый отправитель ElasticEmail | — | — |
+| `MAILGUN_API_KEY` | API-ключ Mailgun (fallback) | — | — |
 | `MAILGUN_DOMAIN` | Sandbox-домен Mailgun | — | — |
 | `SMTP_HOST` | SMTP-сервер (fallback) | `smtp.gmail.com` | — |
 | `SMTP_PORT` | Порт SMTP | `587` | — |

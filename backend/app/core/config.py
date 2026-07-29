@@ -22,6 +22,16 @@ class Settings(BaseSettings):
     mailgun_api_key: str = ""
     mailgun_domain: str = ""
 
+    elasticemail_api_key: str = ""
+    elasticemail_from_email: str = ""
+
+    haskimail_server_token: str = ""
+    haskimail_from_email: str = ""
+    haskimail_channel_id: int = 0
+
+    gmail_token_json: str = ""
+    gmail_from_email: str = ""
+
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""

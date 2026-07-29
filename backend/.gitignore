@@ -20,3 +20,5 @@ storage/rate_limit/*
 *.db
 *.db-journal
 .DS_Store
+token.json
+credentials.json
