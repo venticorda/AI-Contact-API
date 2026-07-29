@@ -25,7 +25,7 @@
 | Фреймворк | **FastAPI** | Асинхронный, Pydantic v2, OpenAPI/docs автоматом |
 | БД | **PostgreSQL 16** + SQLAlchemy 2.0 async | Надёжность, ACID, async sessions |
 | AI | **OpenAI GPT-4o-mini** | Быстрая дешёвая модель, JSON-mode для структурированного вывода |
-| Почта | **Gmail API** (HTTPS OAuth2) + HaskiMail + Mailgun + SMTP | Каскадный fallback: 4 провайдера. Gmail API — основной, решил проблему доставки на mail.ru через HTTPS вместо SMTP |
+| Почта | **Gmail API** (HTTPS OAuth2) | 100 писем/день бесплатно, доставляет на mail.ru. HTTPS (443) вместо SMTP — Render не блокирует |
 | Контейнеризация | **Docker Compose** (app + db + nginx) | Изолированная среда, production-ready |
 | Тесты | **pytest** + pytest-asyncio + httpx | Асинхронные тесты, SQLite in-memory для CI |
 | Линтер | **Ruff** | Быстрый, покрывает flake8/isort/pyupgrade |
@@ -261,11 +261,9 @@ Authorization: Bearer <access_token>
 Body: {"raw": "<base64-encoded MIME message>"}
 ```
 
-**Каскадный fallback**: Gmail API → HaskiMail → Mailgun → SMTP.
-Если один провайдер недоступен, письмо уходит через следующий.
-
-Логи всех отправок пишутся в файл вместе с информацией,
-через какого провайдера ушло письмо.
+Gmail API — единственный провайдер. Никаких fallback-провайдеров:
+если Gmail API отвечает ошибкой — письмо не отправляется, ошибка
+логируется. За время эксплуатации отказов не было.
 
 ---
 
@@ -275,7 +273,7 @@ Body: {"raw": "<base64-encoded MIME message>"}
 |---------|----------------|
 | **API** | POST /api/contact с валидацией, GET /api/contacts с пагинацией, GET /api/health, GET /api/metrics |
 | **AI** | Анализ тональности (positive/neutral/negative), graceful fallback при недоступности |
-| **Email** | Уведомление владельцу + копия отправителю, HTML-письма, отключение если SMTP не настроен |
+| **Email** | Уведомление владельцу + копия отправителю, HTML-письма через Gmail API |
 | **БД** | PostgreSQL 16, SQLAlchemy async, Alembic миграции |
 | **Rate limit** | 5 запросов/мин на IP, файловое хранилище |
 | **Логирование** | Loguru: цветной stdout + JSON в файлы (app, errors, AI) с ротацией |
@@ -295,8 +293,8 @@ git clone <repo-url> && cd <project>
 cp backend/.env.example backend/.env
 # Отредактировать backend/.env:
 #   OPENAI_API_KEY=sk-your-key-here
-#   SMTP_USER=your-email@gmail.com
-#   SMTP_PASSWORD=your-app-password
+#   GMAIL_TOKEN_JSON=base64-your-gmail-oauth-token
+#   GMAIL_FROM_EMAIL=your-email@gmail.com
 
 docker compose up -d --build   # или make up
 
@@ -442,21 +440,9 @@ alembic history                              # История миграций
 |-----------|----------|-------------|-------------|
 | `OPENAI_API_KEY` | API-ключ OpenAI | — | Да (без AI — fallback) |
 | `OPENAI_MODEL` | Модель OpenAI | `gpt-4o-mini` | — |
-| `GMAIL_TOKEN_JSON` | Gmail OAuth token (base64) для Gmail API (приоритетный способ) | — | — |
-| `GMAIL_FROM_EMAIL` | Gmail-адрес отправителя | — | — |
-| `HASKIMAIL_SERVER_TOKEN` | Токен сервера HaskiMail (fallback) | — | — |
-| `HASKIMAIL_FROM_EMAIL` | Подтверждённый отправитель HaskiMail | — | — |
-| `HASKIMAIL_CHANNEL_ID` | ID канала HaskiMail | — | — |
-| `ELASTICEMAIL_API_KEY` | API-ключ ElasticEmail (fallback) | — | — |
-| `ELASTICEMAIL_FROM_EMAIL` | Подтверждённый отправитель ElasticEmail | — | — |
-| `MAILGUN_API_KEY` | API-ключ Mailgun (fallback) | — | — |
-| `MAILGUN_DOMAIN` | Sandbox-домен Mailgun | — | — |
-| `SMTP_HOST` | SMTP-сервер (fallback) | `smtp.gmail.com` | — |
-| `SMTP_PORT` | Порт SMTP | `587` | — |
-| `SMTP_USER` | Логин SMTP | — | — |
-| `SMTP_PASSWORD` | Пароль/App Password | — | — |
+| `GMAIL_TOKEN_JSON` | Gmail OAuth token (base64) для отправки писем | — | Да |
+| `GMAIL_FROM_EMAIL` | Gmail-адрес отправителя | — | Да |
 | `SMTP_OWNER_EMAIL` | Email владельца для уведомлений | — | Да |
-| `SMTP_FROM_EMAIL` | Отправитель писем | = SMTP_USER | — |
 | `DATABASE_URL` | Подключение к БД | `postgresql+psycopg://postgres:postgres@localhost:5432/contacts` | — |
 | `RATE_LIMIT_MAX` | Максимум запросов с одного IP | `5` | — |
 | `RATE_LIMIT_WINDOW` | Временное окно rate limit (сек) | `60` | — |
