@@ -13,6 +13,8 @@
 Проект спроектирован по слоистой архитектуре (Routes → Services → Repositories),
 с акцентом на обратную совместимость, graceful degradation и чистоту кода.
 
+**Деплой**: [ai-contact-api.onrender.com](https://ai-contact-api.onrender.com/)
+
 ---
 
 ## Стек
@@ -23,7 +25,7 @@
 | Фреймворк | **FastAPI** | Асинхронный, Pydantic v2, OpenAPI/docs автоматом |
 | БД | **PostgreSQL 16** + SQLAlchemy 2.0 async | Надёжность, ACID, async sessions |
 | AI | **OpenAI GPT-4o-mini** | Быстрая дешёвая модель, JSON-mode для структурированного вывода |
-| Почта | **Gmail API** (HTTPS OAuth2, приоритет) → HaskiMail → Mailgun → SMTP | Каскадный fallback: Gmail API 100/день бесплатно |
+| Почта | **Gmail API** (HTTPS OAuth2) + HaskiMail + Mailgun + SMTP | Каскадный fallback: 4 провайдера. Gmail API — основной, решил проблему доставки на mail.ru через HTTPS вместо SMTP |
 | Контейнеризация | **Docker Compose** (app + db + nginx) | Изолированная среда, production-ready |
 | Тесты | **pytest** + pytest-asyncio + httpx | Асинхронные тесты, SQLite in-memory для CI |
 | Линтер | **Ruff** | Быстрый, покрывает flake8/isort/pyupgrade |
@@ -227,6 +229,43 @@ PostgreSQL 16 Alpine, nginx Alpine reverse proxy. volume для данных Б�
   health check проверяет только наличие ключа, не тратя лимиты
 - **CSS-анимации фона** — несколько совместных итераций по подбору opacity,
   blur и timing, чтобы было видно, но не отвлекало
+
+---
+
+## Email-доставка: решение проблемы
+
+При деплое на **Render.com** (Free Tier) возникла классическая проблема хостинга:
+**SMTP-порты (25, 465, 587) заблокированы**, что делает невозможной отправку
+писем через стандартный SMTP.
+
+### Исследованные варианты
+
+| Провайдер | Протокол | Результат |
+|-----------|----------|-----------|
+| **Mailgun** (Sandbox) | HTTP API | Sandbox-домен не доставляет на mail.ru |
+| **ElasticEmail** | HTTP API | Верификация номера недоступна в РФ |
+| **HaskiMail** | HTTP API | Требует модерацию и подтверждение домена |
+| **SMTP (Gmail)** | SMTP 587 | Render блокирует порт |
+| ✅ **Gmail API** | **HTTPS (443)** | **Работает, доставляет на mail.ru** |
+
+### Решение: Gmail API
+
+Gmail API использует **HTTPS (порт 443)** вместо SMTP — Render не блокирует.
+OAuth2-авторизация позволяет отправлять письма от имени Gmail-аккаунта
+с лимитом 100 писем/день (бесплатно).
+
+```python
+# Gmail API — единый HTTP-запрос вместо SMTP-сессии
+POST https://gmail.googleapis.com/gmail/v1/users/me/messages/send
+Authorization: Bearer <access_token>
+Body: {"raw": "<base64-encoded MIME message>"}
+```
+
+**Каскадный fallback**: Gmail API → HaskiMail → Mailgun → SMTP.
+Если один провайдер недоступен, письмо уходит через следующий.
+
+Логи всех отправок пишутся в файл вместе с информацией,
+через какого провайдера ушло письмо.
 
 ---
 
