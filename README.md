@@ -411,15 +411,72 @@ Swagger-документация: `http://localhost/docs`
 
 ## Хранение данных
 
-### PostgreSQL
-- Таблица `contacts` — все отправленные формы
-- UUID primary key, created_at, sentiment, reason, fallback_used
-- SQLAlchemy async, Alembic-миграции
+### 1. База данных (PostgreSQL)
 
-### Файловое хранилище (в `storage/`)
-- **Логи** — JSON, ротация (1 файл/день, хранение 30 дней, gzip)
-- **Метрики** — `metrics.json` (total_requests, successful_requests, error_requests, ai_fallback_count)
-- **Rate limit** — JSON-файлы по IP, автоочистка устаревших записей
+**Что хранится:** все отправленные контактные формы — таблица `contacts`.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID (PK) | Уникальный идентификатор |
+| `name` | VARCHAR(100) | Имя отправителя |
+| `phone` | VARCHAR(20) | Телефон |
+| `email` | VARCHAR(255) | Email |
+| `comment` | TEXT | Текст обращения |
+| `sentiment` | VARCHAR(20) | Тональность (positive/neutral/negative/unknown) |
+| `reason` | TEXT | Обоснование от AI |
+| `fallback_used` | BOOLEAN | Использован ли AI fallback |
+| `created_at` | TIMESTAMP | Дата создания |
+
+Подключение: SQLAlchemy 2.0 async (асинхронные сессии). Миграции — Alembic.
+
+### 2. Файловое хранилище (`storage/`)
+
+#### Логирование (`storage/logs/`)
+
+Реализовано через **Loguru** — три файловых sink + stdout:
+
+- `app.json` — все запросы (ротация 1 файл/день, хранение 30 дней, gzip)
+- `errors.json` — только ошибки
+- `ai.json` — только AI-запросы (промпты, ответы, время выполнения)
+
+Формат: JSON-строки, каждая с timestamp, уровнем, именем модуля и сообщением.
+Логирование каждого HTTP-запроса — через middleware (`middlewares/logging.py`),
+которое перехватывает метод, путь, статус и время выполнения.
+
+#### Метрики (`storage/metrics/metrics.json`)
+
+Единый JSON-файл со счётчиками:
+
+```json
+{
+  "total_requests": 150,
+  "successful_requests": 142,
+  "error_requests": 8,
+  "ai_fallback_count": 12
+}
+```
+
+Обновляется атомарно через `json.dump` после каждого запроса.
+Сброс — только при удалении файла или перезапуске.
+
+#### Rate limiting (`storage/rate_limit/`)
+
+Файловый rate limiter — отдельный JSON-файл на каждый IP:
+
+```
+storage/rate_limit/192.168.1.1.json
+storage/rate_limit/10.0.0.1.json
+```
+
+Содержимое каждого файла — массив timestamp'ов запросов за окно:
+
+```json
+[1234567890.123, 1234567890.456, 1234567890.789]
+```
+
+Логика: при каждом запросе очищаются записи старше `RATE_LIMIT_WINDOW` (60 сек).
+Если после очистки осталось `>= RATE_LIMIT_MAX` (5) запросов — возвращается
+HTTP 429. Устаревшие файлы IP с нулевым числом запросов удаляются автоматически.
 
 ---
 
