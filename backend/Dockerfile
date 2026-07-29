@@ -15,11 +15,11 @@ ENV PATH="$POETRY_HOME/bin:$PATH"
 
 WORKDIR /app
 
-COPY pyproject.toml ./
-RUN poetry lock --no-interaction && poetry install --without dev --no-root
+COPY pyproject.toml poetry.lock ./
+RUN poetry lock --no-interaction && poetry install --no-root
 
 COPY . ./
-RUN poetry lock --no-interaction && poetry install --without dev
+RUN poetry lock --no-interaction && poetry install
 
 FROM python:3.14-slim
 
@@ -41,7 +41,7 @@ COPY --from=builder /app /app
 COPY --from=builder /app/.venv /app/.venv
 
 RUN mkdir -p /app/storage/logs /app/storage/metrics /app/storage/rate_limit && \
-    chown -R appuser:appuser /app/storage
+    chown -R appuser:appuser /app /app/storage
 
 USER appuser
 
